@@ -27,6 +27,8 @@ FORKS = {
   'j2k': 'Jays2Kings/tachiyomiJ2K',
   'yokai': 'null2264/yokai',
   'komikku': 'komikku-app/komikku',
+  'knskomikku': 'xkana-shii/komikku',
+  'knssuwayomi': 'xkana-shii/Suwayomi-Server',
 }
 
 PROTONUMBER_RE = r'(?:^\s*(?!\/\/\s*)@ProtoNumber\((?P<number>\d+)\)\s*|data class \w+\(|^)va[rl]\s+(?P<name>\w+):\s+(?:(?:(?:List|Set)<(?P<list>\w+)>)|(?P<type>\w+))(?P<optional>\?|(:?\s+=))?'  # noqa: E501
@@ -91,19 +93,23 @@ args = argp.parse_args()
 
 
 def fetch_schema(fork: str) -> list[tuple[str, str]]:
-  files: list[tuple[str, str]] = []
-  git = get(
-    f'https://api.github.com/repos/{fork}/contents/app/src/main/java/eu/kanade/tachiyomi/data/backup/models',
-    timeout=12,
-  ).json()
-  for entry in git:
-    if entry.get('type') == 'file':
-      files.append((entry.get('name'), entry.get('download_url')))
-    elif entry.get('type') == 'dir':
-      for sub_entry in get(entry.get('url'), timeout=12).json():
-        if sub_entry.get('type') == 'file':
-          files.append((sub_entry.get('name'), sub_entry.get('download_url')))
-  return files
+    files: list[tuple[str, str]] = []
+    if fork == "xkana-shii/Suwayomi-Server":
+        models_path = "server/src/main/kotlin/suwayomi/tachidesk/manga/impl/backup/proto/models"
+    else:
+        models_path = "app/src/main/java/eu/kanade/tachiyomi/data/backup/models"
+    git = get(
+        f'https://api.github.com/repos/{fork}/contents/{models_path}',
+        timeout=12,
+    ).json()
+    for entry in git:
+        if entry.get('type') == 'file':
+            files.append((entry.get('name'), entry.get('download_url')))
+        elif entry.get('type') == 'dir':
+            for sub_entry in get(entry.get('url'), timeout=12).json():
+                if sub_entry.get('type') == 'file':
+                    files.append((sub_entry.get('name'), sub_entry.get('download_url')))
+    return files
 
 
 def parse_model(model: str) -> list[str]:
